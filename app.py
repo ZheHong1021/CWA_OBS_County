@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 
 from  selenium.webdriver.support.ui  import  WebDriverWait 
 from  selenium.webdriver.support  import  expected_conditions  as  EC
+
 #endregion
 
 from datetime import datetime, timedelta
@@ -135,6 +136,7 @@ if __name__ == '__main__':
     start = time.time()
 
     map_CityID_Dict = {
+        "基隆市": 10017,
         "臺北市": 63,
         "高雄市": 64,
         "新北市": 65,
@@ -188,7 +190,7 @@ if __name__ == '__main__':
         driver = webdriver.Chrome(CHROMEDRIVER_PATH, chrome_options=option)
 
         #取得網頁代碼
-        url = f"https://www.cwb.gov.tw/V8/C/W/OBS_County.html?ID=10017"
+        url = f"https://www.cwa.gov.tw/V8/C/W/OBS_County.html?ID=10017"
         driver.get(url)
 
         if not driver.title:
