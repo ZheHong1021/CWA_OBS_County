@@ -14,6 +14,33 @@ from  selenium.webdriver.support  import  expected_conditions  as  EC
 from datetime import datetime, timedelta
 import random, time, pymysql
 
+import logging
+
+def setup_logger(log_file='app.log'):
+    # 创建一个记录器
+    logger = logging.getLogger('my_logger')
+    logger.setLevel(logging.DEBUG)
+
+    # 创建一个文件处理程序，用于将日志写入文件
+    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG)
+
+    # 创建一个控制台处理程序，用于在控制台输出日志
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    # 创建一个格式器，用于定义日志消息的格式
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    # 将处理程序添加到记录器
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    return logger
+
+
 # 資料庫連線
 def connect_db(host, user, pwd, dbname, port):
     try:
@@ -127,12 +154,16 @@ def parseDriverContent(driver):
         try:
             td_obsTime = datetime.strptime(f"{date_str} {td_obsTime}", "%Y-%m-%d %H:%M") # 日期格式
             UpdateStation(id, td_wDir, td_wPower, td_temp, td_rain, td_humidity, td_presure, td_sunlight, td_weather, td_obsTime)
+            # logger.info(f"【{(id + '_' + name)}】更新成功")
         except Exception as e:
-            print(f"更新區域發生錯誤: {e}")
+            logger.error(f"更新區域發生錯誤: {e}")
         #endregion
 
 
 if __name__ == '__main__':
+    # 操作日誌
+    logger = setup_logger()
+
     start = time.time()
 
     map_CityID_Dict = {
@@ -174,27 +205,34 @@ if __name__ == '__main__':
     ) # 資料庫連線
 
     try:
+
+
         #region (Driver Option)
-        option = webdriver.ChromeOptions()
+        try:
+            option = webdriver.ChromeOptions()
 
-        # 【參考】https://ithelp.ithome.com.tw/articles/10244446
-        option.add_argument("headless") # 不開網頁搜尋
-        option.add_argument('blink-settings=imagesEnabled=false') # 不加載圖片提高效率
-        option.add_argument('--log-level=3') # 這個option可以讓你跟headless時網頁端的console.log說掰掰
-        """下面參數能提升爬蟲穩定性"""
-        option.add_argument('--disable-dev-shm-usage') # 使用共享內存RAM
-        option.add_argument('--disable-gpu') # 規避部分chrome gpu bug
-        #endregion
+            # 【參考】https://ithelp.ithome.com.tw/articles/10244446
+            option.add_argument("headless") # 不開網頁搜尋
+            option.add_argument('blink-settings=imagesEnabled=false') # 不加載圖片提高效率
+            option.add_argument('--log-level=3') # 這個option可以讓你跟headless時網頁端的console.log說掰掰
+            """下面參數能提升爬蟲穩定性"""
+            option.add_argument('--disable-dev-shm-usage') # 使用共享內存RAM
+            option.add_argument('--disable-gpu') # 規避部分chrome gpu bug
+            #endregion
 
-        #region (啟動模擬瀏覽器)
-        driver = webdriver.Chrome(CHROMEDRIVER_PATH, chrome_options=option)
+            #region (啟動模擬瀏覽器)
+            driver = webdriver.Chrome(CHROMEDRIVER_PATH, chrome_options=option)
+            #取得網頁代碼
+            url = f"https://www.cwa.gov.tw/V8/C/W/OBS_County.html?ID=10017"
+            driver.get(url)
 
-        #取得網頁代碼
-        url = f"https://www.cwa.gov.tw/V8/C/W/OBS_County.html?ID=10017"
-        driver.get(url)
+        except Exception as e:
+            logger.error(f"📛無法連線爬蟲網站...{e}")
+
+
 
         if not driver.title:
-            print(f"📛未成功進入頁面...")
+            logger.error(f"📛未成功進入頁面...")
             pass
         
         print(f"✅成功進入頁面...({driver.title})")
@@ -226,13 +264,14 @@ if __name__ == '__main__':
             print("----------------------------")
         #endregion
 
+        logger.info(f"程式執行成功 ({format( time.time() - start )}秒)")
     except Exception as e:
         print(f"啟動chromedirver發生錯誤: {e}")
     
     finally:
         driver.close()
         driver.quit()
-
+        
         print(f"程式執行時間: {format( time.time() - start )}秒")
         print(f"程式執行結束，2秒後將關閉視窗")
         time.sleep(2)
